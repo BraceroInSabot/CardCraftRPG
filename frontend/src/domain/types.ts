@@ -48,6 +48,15 @@ export interface Item extends SystemScoped {
   rarity: Rarity
   cost: string
   weight: string
+  /** Only kept for weapons (see `isWeapon`). */
+  damage: string
+}
+
+/** Item types that carry a damage value. Mirrors the backend rule. */
+const WEAPON_ITEM_TYPES = ['arma']
+
+export function isWeapon(itemType: unknown): boolean {
+  return typeof itemType === 'string' && WEAPON_ITEM_TYPES.includes(itemType.trim().toLowerCase())
 }
 
 export type Race = SystemScoped
@@ -82,12 +91,12 @@ export interface Choice<V extends string = string> {
 }
 
 export const RARITIES: Choice<Rarity>[] = [
-  { value: 'common', label: 'Common', color: '#6b7280' },
-  { value: 'uncommon', label: 'Uncommon', color: '#2f855a' },
-  { value: 'rare', label: 'Rare', color: '#2b6cb0' },
-  { value: 'very_rare', label: 'Very rare', color: '#6b46c1' },
-  { value: 'legendary', label: 'Legendary', color: '#c05621' },
-  { value: 'artifact', label: 'Artifact', color: '#9b2c2c' },
+  { value: 'common', label: 'Comum', color: '#6b7280' },
+  { value: 'uncommon', label: 'Incomum', color: '#2f855a' },
+  { value: 'rare', label: 'Raro', color: '#2b6cb0' },
+  { value: 'very_rare', label: 'Muito raro', color: '#6b46c1' },
+  { value: 'legendary', label: 'Lendário', color: '#c05621' },
+  { value: 'artifact', label: 'Artefato', color: '#9b2c2c' },
 ]
 
 export const SKILL_KINDS: Choice<SkillKind>[] = [

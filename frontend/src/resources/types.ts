@@ -26,6 +26,8 @@ interface BaseField {
   label: string
   required?: boolean
   description?: string
+  /** Show the field only when this returns true for the current form values. */
+  visibleWhen?(values: Record<string, unknown>): boolean
 }
 
 export type FieldDef =

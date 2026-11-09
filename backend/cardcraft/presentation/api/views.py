@@ -119,7 +119,7 @@ class EntityViewSet(viewsets.ViewSet):
 
 
 def _labelled(enum_cls) -> list[dict[str, str]]:
-    return [{"value": m.value, "label": m.value.replace("_", " ").title()} for m in enum_cls]
+    return [{"value": m.value, "label": getattr(m, "label", m.value.replace("_", " ").title())} for m in enum_cls]
 
 
 @api_view(["GET"])

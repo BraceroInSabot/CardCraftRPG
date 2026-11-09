@@ -18,7 +18,7 @@ from cardcraft.domain.entities import (
 
 
 def _choices(enum_cls) -> list[tuple[str, str]]:
-    return [(member.value, member.value.replace("_", " ").title()) for member in enum_cls]
+    return [(member.value, getattr(member, "label", member.value.replace("_", " ").title())) for member in enum_cls]
 
 
 class TimestampedModel(models.Model):
@@ -69,6 +69,7 @@ class ItemModel(SystemScopedModel):
     rarity = models.CharField(max_length=20, choices=_choices(Rarity), default=Rarity.COMMON.value)
     cost = models.CharField(max_length=SHORT_TEXT_MAX_LENGTH, blank=True, default="")
     weight = models.CharField(max_length=SHORT_TEXT_MAX_LENGTH, blank=True, default="")
+    damage = models.CharField(max_length=SHORT_TEXT_MAX_LENGTH, blank=True, default="")
 
     class Meta:
         db_table = "item"

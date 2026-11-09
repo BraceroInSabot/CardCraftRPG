@@ -51,3 +51,18 @@ def test_list_query_clamps_pagination():
 def test_page_total_pages_rounds_up():
     assert Page(items=[], total=41, page=1, page_size=20).total_pages == 3
     assert Page(items=[], total=0, page=1, page_size=20).total_pages == 1
+
+
+@pytest.mark.parametrize("item_type", ["Arma", "arma", "  ARMA "])
+def test_weapons_keep_their_damage(item_type):
+    item = Item(name="Espada", system_id=1, item_type=item_type, damage=" 1d8 cortante ")
+    assert item.is_weapon
+    assert item.damage == "1d8 cortante"
+
+
+def test_damage_is_dropped_for_non_weapons():
+    assert Item(name="Poção", system_id=1, item_type="Poção", damage="2d6").damage == ""
+
+
+def test_rarity_labels_are_in_portuguese():
+    assert [rarity.label for rarity in Rarity] == ["Comum", "Incomum", "Raro", "Muito raro", "Lendário", "Artefato"]

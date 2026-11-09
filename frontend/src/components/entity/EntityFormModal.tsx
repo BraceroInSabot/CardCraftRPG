@@ -36,9 +36,14 @@ function initialValues(fields: FieldDef[], entity: BaseEntity | null, defaults: 
   return values
 }
 
+function isVisible(field: FieldDef, values: FormValues): boolean {
+  return field.visibleWhen ? field.visibleWhen(values) : true
+}
+
+/** Hidden fields are left out: the backend keeps or clears them by its own rules. */
 function toPayload(fields: FieldDef[], values: FormValues): Record<string, unknown> {
   const payload: Record<string, unknown> = {}
-  for (const field of fields) {
+  for (const field of fields.filter((candidate) => isVisible(candidate, values))) {
     const value = values[field.name]
     if (field.kind === 'reference') payload[field.name] = value ? Number(value) : null
     else if (field.kind === 'number') payload[field.name] = value === '' || value === null ? null : Number(value)
@@ -107,7 +112,7 @@ function EntityForm({
     },
     validate: (values) => {
       const errors: Record<string, string> = {}
-      for (const field of resource.fields) {
+      for (const field of resource.fields.filter((candidate) => isVisible(candidate, values))) {
         const value = values[field.name]
         if (field.required && (value === null || value === '' || (typeof value === 'string' && !value.trim()))) {
           errors[field.name] = `${field.label} is required.`
@@ -197,7 +202,9 @@ function EntityForm({
       <Grid gap="xl">
         <Grid.Col span={{ base: 12, sm: 7 }}>
           <Stack gap="sm">
-            {resource.fields.map((field) => renderField(field, form, lookups, entity))}
+            {resource.fields
+              .filter((field) => isVisible(field, form.values))
+              .map((field) => renderField(field, form, lookups, entity))}
             <CardAppearanceFields
               colorProps={form.getInputProps('background_color')}
               image={image}

@@ -16,7 +16,8 @@ DEMO = {
         {"name": "Tides of Saltmere", "description": "Smugglers, sea witches and a drowned lighthouse that still shines at night."},
     ],
     "items": [
-        {"name": "Longsword", "item_type": "Weapon", "rarity": "common", "cost": "15 gp", "weight": "3 lb",
+        {"name": "Longsword", "item_type": "Arma", "rarity": "common", "cost": "15 gp", "weight": "3 lb",
+         "damage": "1d8 slashing",
          "description": "Versatile steel blade. Deals 1d8 slashing damage, or 1d10 when wielded with two hands."},
         {"name": "Healing Draught", "item_type": "Potion", "rarity": "common", "cost": "50 gp", "weight": "0.5 lb",
          "description": "A bitter red tonic. Drinking it restores 2d4 + 2 hit points."},

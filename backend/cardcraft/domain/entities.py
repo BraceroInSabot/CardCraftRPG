@@ -30,6 +30,23 @@ class Rarity(StrEnum):
     LEGENDARY = "legendary"
     ARTIFACT = "artifact"
 
+    @property
+    def label(self) -> str:
+        return _RARITY_LABELS[self]
+
+
+_RARITY_LABELS = {
+    Rarity.COMMON: "Comum",
+    Rarity.UNCOMMON: "Incomum",
+    Rarity.RARE: "Raro",
+    Rarity.VERY_RARE: "Muito raro",
+    Rarity.LEGENDARY: "Lendário",
+    Rarity.ARTIFACT: "Artefato",
+}
+
+# Item types (compared case-insensitively) whose cards show a damage value.
+WEAPON_ITEM_TYPES = frozenset({"arma"})
+
 
 class SkillKind(StrEnum):
     PASSIVE = "passive"
@@ -168,6 +185,11 @@ class Item(SystemScopedEntity):
     rarity: Rarity = Rarity.COMMON
     cost: str = ""
     weight: str = ""
+    damage: str = ""  # only kept for weapons, e.g. "1d8 cortante"
+
+    @property
+    def is_weapon(self) -> bool:
+        return self.item_type.casefold() in WEAPON_ITEM_TYPES
 
     def _normalize(self) -> None:
         super()._normalize()
@@ -175,12 +197,15 @@ class Item(SystemScopedEntity):
         self.cost = (self.cost or "").strip()
         self.weight = (self.weight or "").strip()
         self.rarity = _coerce_enum(Rarity, self.rarity)
+        # Damage belongs to weapons only: changing the type away from "Arma" drops it.
+        self.damage = (self.damage or "").strip() if self.is_weapon else ""
 
     def _collect_errors(self, errors: _ErrorCollector) -> None:
         super()._collect_errors(errors)
         errors.limit_text("item_type", self.item_type, SHORT_TEXT_MAX_LENGTH)
         errors.limit_text("cost", self.cost, SHORT_TEXT_MAX_LENGTH)
         errors.limit_text("weight", self.weight, SHORT_TEXT_MAX_LENGTH)
+        errors.limit_text("damage", self.damage, SHORT_TEXT_MAX_LENGTH)
         if not isinstance(self.rarity, Rarity):
             errors.add("rarity", f"Must be one of: {', '.join(Rarity)}.")
 

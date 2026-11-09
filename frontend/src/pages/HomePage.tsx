@@ -7,7 +7,7 @@ const sample = {
   category: 'Wondrous',
   title: 'Cloak of Embers',
   frameColor: RARITIES[2].color,
-  tags: [{ label: 'Rare', color: RARITIES[2].color }],
+  tags: [{ label: RARITIES[2].label, color: RARITIES[2].color }],
   body: 'While wearing this charred cloak you resist fire damage. Once per day you can wreathe yourself in harmless flames.',
   stats: [
     { label: 'Cost', value: '4,000 gp' },

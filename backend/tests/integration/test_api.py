@@ -129,7 +129,7 @@ def test_deleting_a_campaign_keeps_its_content(api, system, campaign):
 
 def test_meta_exposes_choices(api):
     body = api.get("/api/meta/").json()
-    assert {"value": "very_rare", "label": "Very Rare"} in body["rarities"]
+    assert {"value": "very_rare", "label": "Muito raro"} in body["rarities"]
     assert [k["value"] for k in body["skill_kinds"]] == ["passive", "active", "reaction"]
 
 
@@ -205,3 +205,22 @@ def test_deleting_a_card_deletes_its_image(api, system, media_root):
     )
     api.delete(f"/api/items/{item['id']}/")
     assert list((media_root / "cards").iterdir()) == []
+
+
+def test_damage_is_kept_only_for_weapons(api, system):
+    sword = api.post(
+        "/api/items/",
+        {"name": "Espada", "system_id": system["id"], "item_type": "Arma", "damage": "1d8 cortante"},
+        format="json",
+    ).json()
+    assert sword["damage"] == "1d8 cortante"
+
+    potion = api.post(
+        "/api/items/",
+        {"name": "Poção", "system_id": system["id"], "item_type": "Poção", "damage": "2d6"},
+        format="json",
+    ).json()
+    assert potion["damage"] == ""
+
+    retyped = api.patch(f"/api/items/{sword['id']}/", {"item_type": "Relíquia"}, format="json").json()
+    assert retyped["damage"] == ""

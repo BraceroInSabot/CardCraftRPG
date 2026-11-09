@@ -110,6 +110,10 @@ backend/cardcraft/
 - The image of a card is only changed through its image endpoint, never through create/update input.
   Replacing, removing or deleting a card removes the old file.
 - A campaign cannot move to another system after creation.
+- Only weapons (item type "Arma", any letter case) keep a **damage** value; changing the type to
+  anything else clears it. The form shows the Damage field only for weapons.
+- Rarity values stay in English in the API (`common`, `very_rare`...); their labels are Portuguese
+  (Comum, Incomum, Raro, Muito raro, Lendário, Artefato).
 - Deleting a system deletes everything in it; deleting a campaign keeps its content (unlinked);
   deleting a race or class deletes its skills.
 

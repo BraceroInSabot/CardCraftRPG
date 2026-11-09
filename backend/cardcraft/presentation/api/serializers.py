@@ -80,6 +80,7 @@ class ItemSerializer(SystemScopedSerializer):
     rarity = serializers.ChoiceField(choices=_enum_choices(Rarity), required=False)
     cost = _short_text()
     weight = _short_text()
+    damage = _short_text()
 
 
 class RaceSerializer(SystemScopedSerializer):
