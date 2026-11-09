@@ -1,0 +1,51 @@
+/* ---------------------------------------------------------------------------
+   Printing: only the off-screen `.print-root` (see PrintSheet) is printed.
+   It stays rendered off-screen so cards can measure and fit their text.
+   --------------------------------------------------------------------------- */
+
+.print-root {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  pointer-events: none;
+}
+
+.print-page {
+  display: grid;
+  grid-template-columns: repeat(3, 60mm);
+  grid-auto-rows: 90mm;
+  justify-content: center;
+  align-content: start;
+  break-after: page;
+}
+
+.print-page:last-child {
+  break-after: auto;
+}
+
+/* Dashed cut guides that do not change the card size. */
+.print-cell {
+  outline: 0.15mm dashed #9aa0a6;
+  outline-offset: 0;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    margin: 0;
+  }
+
+  body > *:not(.print-root) {
+    display: none !important;
+  }
+
+  .print-root {
+    position: static;
+  }
+}

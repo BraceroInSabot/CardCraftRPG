@@ -1,0 +1,28 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(60mm + 12px), 1fr));
+  gap: var(--mantine-spacing-lg) var(--mantine-spacing-md);
+  justify-items: center;
+}
+
+.slot {
+  width: calc(60mm + 12px);
+  padding: 6px;
+  border-radius: 14px;
+  transition: background-color 120ms ease;
+}
+
+.slot[data-selected] {
+  background: var(--mantine-primary-color-light);
+  box-shadow: inset 0 0 0 2px var(--mantine-primary-color-filled);
+}
+
+.cardFrame {
+  cursor: pointer;
+  border-radius: 3mm;
+  box-shadow: 0 1px 2px rgb(31 36 48 / 12%), 0 6px 16px -8px rgb(31 36 48 / 30%);
+}
+
+.table {
+  background: var(--mantine-color-body);
+}

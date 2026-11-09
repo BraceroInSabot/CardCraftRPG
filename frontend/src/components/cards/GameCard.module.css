@@ -1,0 +1,125 @@
+/* Physical card: 6 cm × 9 cm. Every size is in mm/pt so screen and print match. */
+.card {
+  --frame: #3d4a5c;
+  box-sizing: border-box;
+  width: 60mm;
+  height: 90mm;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  color: #1f2430;
+  border: 1.4mm solid var(--frame);
+  border-radius: 3mm;
+  font-family: 'Alegreya Sans', 'Segoe UI', sans-serif;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.band {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 2mm;
+  padding: 0.4mm 1.6mm 1mm;
+  background: var(--frame);
+  color: #fff;
+  font-size: 6.5pt;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.origin {
+  font-weight: 400;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.inner {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.3mm;
+  padding: 2mm 2.4mm 2.2mm;
+}
+
+.title {
+  margin: 0;
+  font-family: 'Alegreya', Georgia, serif;
+  font-weight: 800;
+  font-size: 12.5pt;
+  line-height: 1.05;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1mm;
+}
+
+.tag {
+  border: 0.25mm solid var(--tag);
+  color: var(--tag);
+  border-radius: 1mm;
+  padding: 0 1.2mm;
+  font-size: 6.5pt;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-top: 0.3mm solid color-mix(in srgb, var(--frame) 35%, #fff);
+  padding-top: 1.4mm;
+}
+
+.body p {
+  margin: 0;
+  line-height: 1.28;
+  white-space: pre-line;
+  hyphens: auto;
+}
+
+.empty {
+  color: #8a8f98;
+  font-style: italic;
+}
+
+.stats {
+  display: flex;
+  gap: 3mm;
+  margin: 0;
+  padding-top: 1.2mm;
+  border-top: 0.3mm solid color-mix(in srgb, var(--frame) 35%, #fff);
+}
+
+.stat dt {
+  font-size: 5.5pt;
+  color: #5f6673;
+}
+
+.stat dd {
+  margin: 0;
+  font-size: 7.5pt;
+  font-weight: 700;
+}
+
+.footnote {
+  margin: 0;
+  font-size: 6.5pt;
+  font-style: italic;
+  color: #5f6673;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

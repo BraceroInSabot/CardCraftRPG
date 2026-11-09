@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.sqlite3
+
+# Env
+.env
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
