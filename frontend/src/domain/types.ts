@@ -2,6 +2,31 @@ export interface BaseEntity {
   id: number
   name: string
   description: string
+  /** Card background, hex like `#ffffff`. */
+  background_color: string
+  /** Absolute URL of the card illustration, or null. */
+  image_url: string | null
+}
+
+export const DEFAULT_BACKGROUND = '#ffffff'
+
+/** Preset card backgrounds offered in the color picker. */
+export const BACKGROUND_SWATCHES = [
+  '#ffffff',
+  '#f6ecd6',
+  '#efe4cf',
+  '#e8f1f2',
+  '#e6efe3',
+  '#f6e4e4',
+  '#ece6f5',
+  '#2b3242',
+  '#1f2430',
+]
+
+export const IMAGE_RULES = {
+  accept: 'image/png,image/jpeg,image/webp,image/gif',
+  types: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
+  maxBytes: 5 * 1024 * 1024,
 }
 
 export type RpgSystem = BaseEntity

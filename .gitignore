@@ -13,3 +13,6 @@ venv/
 .idea/
 .vscode/
 .DS_Store
+
+# Uploaded card images
+backend/media/

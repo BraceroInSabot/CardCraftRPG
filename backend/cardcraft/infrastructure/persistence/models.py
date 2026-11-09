@@ -7,7 +7,9 @@ of the system talks to repositories that return domain entities.
 from django.db import models
 
 from cardcraft.domain.entities import (
+    DEFAULT_BACKGROUND_COLOR,
     DESCRIPTION_MAX_LENGTH,
+    IMAGE_KEY_MAX_LENGTH,
     NAME_MAX_LENGTH,
     SHORT_TEXT_MAX_LENGTH,
     Rarity,
@@ -30,6 +32,8 @@ class TimestampedModel(models.Model):
 class NamedModel(TimestampedModel):
     name = models.CharField(max_length=NAME_MAX_LENGTH, db_index=True)
     description = models.TextField(max_length=DESCRIPTION_MAX_LENGTH, blank=True, default="")
+    background_color = models.CharField(max_length=7, default=DEFAULT_BACKGROUND_COLOR)
+    image = models.CharField(max_length=IMAGE_KEY_MAX_LENGTH, blank=True, default="")
 
     class Meta:
         abstract = True

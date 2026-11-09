@@ -9,7 +9,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from functools import lru_cache
 
-from cardcraft.application import CampaignBelongsToSystem, CrudUseCases, ImmutableField, ReferenceExists
+from cardcraft.application import (
+    CampaignBelongsToSystem,
+    CardUseCases,
+    ImageStorage,
+    ImmutableField,
+    ReferenceExists,
+)
 from cardcraft.domain import (
     Campaign,
     CharacterClass,
@@ -23,17 +29,19 @@ from cardcraft.domain import (
 
 @dataclass(frozen=True)
 class Container:
-    systems: CrudUseCases[RpgSystem]
-    campaigns: CrudUseCases[Campaign]
-    items: CrudUseCases[Item]
-    races: CrudUseCases[Race]
-    race_skills: CrudUseCases[RaceSkill]
-    classes: CrudUseCases[CharacterClass]
-    class_skills: CrudUseCases[ClassSkill]
+    systems: CardUseCases[RpgSystem]
+    campaigns: CardUseCases[Campaign]
+    items: CardUseCases[Item]
+    races: CardUseCases[Race]
+    race_skills: CardUseCases[RaceSkill]
+    classes: CardUseCases[CharacterClass]
+    class_skills: CardUseCases[ClassSkill]
+    image_storage: ImageStorage
 
 
 def build_container() -> Container:
     # Imported lazily: Django models need the app registry to be ready.
+    from cardcraft.infrastructure.images import DjangoImageStorage, PillowImageInspector
     from cardcraft.infrastructure.persistence import models as orm
     from cardcraft.infrastructure.persistence.mappers import EntityMapper
     from cardcraft.infrastructure.persistence.repositories import DjangoRepository
@@ -58,16 +66,21 @@ def build_container() -> Container:
     system_exists = ReferenceExists("system_id", systems, "RPG system")
     system_scoped_rules = (system_exists, CampaignBelongsToSystem(campaigns))
 
+    inspector = PillowImageInspector()
+    storage = DjangoImageStorage()
+
+    def cards(repository, entity_cls, rules=()):
+        return CardUseCases.build_for_cards(repository, entity_cls, inspector, storage, rules)
+
     return Container(
-        systems=CrudUseCases.build(systems, RpgSystem),
-        campaigns=CrudUseCases.build(campaigns, Campaign, (system_exists, ImmutableField("system_id"))),
-        items=CrudUseCases.build(items, Item, system_scoped_rules),
-        races=CrudUseCases.build(races, Race, system_scoped_rules),
-        race_skills=CrudUseCases.build(race_skills, RaceSkill, (ReferenceExists("race_id", races, "Race"),)),
-        classes=CrudUseCases.build(classes, CharacterClass, system_scoped_rules),
-        class_skills=CrudUseCases.build(
-            class_skills, ClassSkill, (ReferenceExists("class_id", classes, "Class"),)
-        ),
+        systems=cards(systems, RpgSystem),
+        campaigns=cards(campaigns, Campaign, (system_exists, ImmutableField("system_id"))),
+        items=cards(items, Item, system_scoped_rules),
+        races=cards(races, Race, system_scoped_rules),
+        race_skills=cards(race_skills, RaceSkill, (ReferenceExists("race_id", races, "Race"),)),
+        classes=cards(classes, CharacterClass, system_scoped_rules),
+        class_skills=cards(class_skills, ClassSkill, (ReferenceExists("class_id", classes, "Class"),)),
+        image_storage=storage,
     )
 
 

@@ -35,10 +35,11 @@ async function toApiError(response: Response): Promise<ApiError> {
 export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response: Response
   try {
-    response = await fetch(`${API_BASE}${path}`, {
-      ...init,
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...init.headers },
-    })
+    // FormData bodies (file uploads) need the browser to set the multipart boundary.
+    const headers = new Headers(init.headers)
+    headers.set('Accept', 'application/json')
+    if (!(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
+    response = await fetch(`${API_BASE}${path}`, { ...init, headers })
   } catch {
     throw new ApiError(0, 'Could not reach the API. Check that the backend is running.')
   }

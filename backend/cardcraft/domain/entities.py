@@ -6,6 +6,7 @@ the database or HTTP, so they can be tested and reused in isolation.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, fields
 from enum import StrEnum
 from typing import Any, ClassVar
@@ -15,6 +16,10 @@ from .exceptions import ValidationError
 NAME_MAX_LENGTH = 120
 SHORT_TEXT_MAX_LENGTH = 60
 DESCRIPTION_MAX_LENGTH = 1200
+DEFAULT_BACKGROUND_COLOR = "#ffffff"
+IMAGE_KEY_MAX_LENGTH = 255
+
+_HEX_COLOR = re.compile(r"^#[0-9a-f]{6}$")
 
 
 class Rarity(StrEnum):
@@ -70,6 +75,8 @@ class Entity:
     """Base entity: identity plus self-validation on construction."""
 
     entity_name: ClassVar[str] = "Entity"
+    # Fields only changed by dedicated use cases, never by plain create/update input.
+    managed_fields: ClassVar[frozenset[str]] = frozenset({"id"})
 
     id: int | None = None
 
@@ -95,18 +102,33 @@ class Entity:
 
 @dataclass(kw_only=True)
 class NamedEntity(Entity):
+    """Anything that can be printed as a card: a name, a text and its look."""
+
+    managed_fields: ClassVar[frozenset[str]] = frozenset({"id", "image"})
+
     name: str
     description: str = ""
+    background_color: str = DEFAULT_BACKGROUND_COLOR
+    image: str = ""  # storage key of the card illustration; "" when there is none
 
     def _normalize(self) -> None:
         super()._normalize()
         self.name = (self.name or "").strip()
         self.description = (self.description or "").strip()
+        self.background_color = (self.background_color or DEFAULT_BACKGROUND_COLOR).strip().lower()
+        self.image = self.image or ""
 
     def _collect_errors(self, errors: _ErrorCollector) -> None:
         super()._collect_errors(errors)
         errors.require_text("name", self.name, NAME_MAX_LENGTH)
         errors.limit_text("description", self.description, DESCRIPTION_MAX_LENGTH)
+        errors.limit_text("image", self.image, IMAGE_KEY_MAX_LENGTH)
+        if not _HEX_COLOR.match(self.background_color):
+            errors.add("background_color", "Use a hex color such as #ffffff.")
+
+    @property
+    def has_image(self) -> bool:
+        return bool(self.image)
 
 
 @dataclass(kw_only=True)

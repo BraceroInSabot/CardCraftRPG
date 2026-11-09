@@ -11,14 +11,22 @@ from collections.abc import Mapping, Sequence
 from dataclasses import MISSING, dataclass, fields
 from typing import Any, Generic, TypeVar
 
-from cardcraft.domain.entities import Entity
+from cardcraft.domain.entities import Entity, NamedEntity
 from cardcraft.domain.exceptions import ValidationError
 from cardcraft.domain.queries import ListQuery, Page
 from cardcraft.domain.repositories import Repository
 
+from .images import RemoveCardImage, SetCardImage
+from .ports import ImageInspector, ImageStorage
 from .rules import IntegrityRule
 
 E = TypeVar("E", bound=Entity)
+C = TypeVar("C", bound=NamedEntity)
+
+
+def _accepted_input(entity_cls: type[Entity], data: Mapping[str, Any]) -> dict[str, Any]:
+    """Drop fields that plain create/update must not set (id, image...)."""
+    return {key: value for key, value in data.items() if key not in entity_cls.managed_fields}
 
 
 def build_entity(entity_cls: type[E], data: Mapping[str, Any]) -> E:
@@ -50,7 +58,7 @@ class CreateEntity(_RuleRunner[E]):
         self._entity_cls = entity_cls
 
     def execute(self, data: Mapping[str, Any]) -> E:
-        entity = build_entity(self._entity_cls, {**data, "id": None})
+        entity = build_entity(self._entity_cls, _accepted_input(self._entity_cls, data))
         self._enforce(entity, previous=None)
         return self._repository.add(entity)
 
@@ -63,7 +71,8 @@ class UpdateEntity(_RuleRunner[E]):
 
     def execute(self, entity_id: int, changes: Mapping[str, Any]) -> E:
         current = self._repository.get(entity_id)
-        entity = build_entity(self._entity_cls, {**current.to_dict(), **changes, "id": entity_id})
+        changes = _accepted_input(self._entity_cls, changes)
+        entity = build_entity(self._entity_cls, {**current.to_dict(), **changes})
         self._enforce(entity, previous=current)
         return self._repository.update(entity)
 
@@ -85,12 +94,16 @@ class ListEntities(Generic[E]):
 
 
 class DeleteEntity(Generic[E]):
-    def __init__(self, repository: Repository[E]):
+    def __init__(self, repository: Repository[E], image_storage: ImageStorage | None = None):
         self._repository = repository
+        self._image_storage = image_storage
 
     def execute(self, entity_id: int) -> None:
-        self._repository.get(entity_id)  # raises NotFoundError for unknown ids
+        entity = self._repository.get(entity_id)  # raises NotFoundError for unknown ids
         self._repository.delete(entity_id)
+        image = getattr(entity, "image", "")
+        if image and self._image_storage:
+            self._image_storage.delete(image)
 
 
 @dataclass(frozen=True)
@@ -116,4 +129,31 @@ class CrudUseCases(Generic[E]):
             get=GetEntity(repository),
             list=ListEntities(repository),
             delete=DeleteEntity(repository),
+        )
+
+
+@dataclass(frozen=True)
+class CardUseCases(CrudUseCases[C]):
+    """CRUD plus the operations that manage a card's illustration."""
+
+    set_image: SetCardImage[C]
+    remove_image: RemoveCardImage[C]
+
+    @classmethod
+    def build_for_cards(
+        cls,
+        repository: Repository[C],
+        entity_cls: type[C],
+        inspector: ImageInspector,
+        storage: ImageStorage,
+        rules: Sequence[IntegrityRule[C]] = (),
+    ) -> CardUseCases[C]:
+        return cls(
+            create=CreateEntity(repository, entity_cls, rules),
+            update=UpdateEntity(repository, entity_cls, rules),
+            get=GetEntity(repository),
+            list=ListEntities(repository),
+            delete=DeleteEntity(repository, storage),
+            set_image=SetCardImage(repository, inspector, storage),
+            remove_image=RemoveCardImage(repository, storage),
         )

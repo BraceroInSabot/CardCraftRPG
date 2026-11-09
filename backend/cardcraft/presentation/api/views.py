@@ -9,17 +9,19 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from rest_framework import status, viewsets
-from rest_framework.decorators import api_view
+from rest_framework.decorators import action, api_view
+from rest_framework.parsers import MultiPartParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from cardcraft.application import CrudUseCases
+from cardcraft.application import MAX_IMAGE_BYTES, CardUseCases, ImageStorage, ImageUpload
 from cardcraft.domain.entities import Rarity, SkillKind
 from cardcraft.domain.queries import MAX_PAGE_SIZE
 
-from .serializers import ListParamsSerializer, NamedEntitySerializer
+from .serializers import ImageUploadSerializer, ListParamsSerializer, NamedEntitySerializer
 
-UseCasesProvider = Callable[[], CrudUseCases]
+UseCasesProvider = Callable[[], CardUseCases]
+StorageProvider = Callable[[], ImageStorage]
 
 
 class EntityViewSet(viewsets.ViewSet):
@@ -28,6 +30,7 @@ class EntityViewSet(viewsets.ViewSet):
     lookup_value_regex = r"\d+"
 
     use_cases_provider: UseCasesProvider
+    storage_provider: StorageProvider
     serializer_class: type[NamedEntitySerializer]
     list_params_class: type[ListParamsSerializer] = ListParamsSerializer
 
@@ -36,6 +39,7 @@ class EntityViewSet(viewsets.ViewSet):
         cls,
         name: str,
         use_cases_provider: UseCasesProvider,
+        storage_provider: StorageProvider,
         serializer_class: type[NamedEntitySerializer],
         list_params_class: type[ListParamsSerializer] = ListParamsSerializer,
     ) -> type[EntityViewSet]:
@@ -44,14 +48,19 @@ class EntityViewSet(viewsets.ViewSet):
             (cls,),
             {
                 "use_cases_provider": staticmethod(use_cases_provider),
+                "storage_provider": staticmethod(storage_provider),
                 "serializer_class": serializer_class,
                 "list_params_class": list_params_class,
             },
         )
 
     @property
-    def use_cases(self) -> CrudUseCases:
+    def use_cases(self) -> CardUseCases:
         return self.use_cases_provider()
+
+    def _render(self, entity_or_entities, many: bool = False):
+        context = {"request": self.request, "image_url": self.storage_provider().url}
+        return self.serializer_class(entity_or_entities, many=many, context=context).data
 
     def list(self, request: Request) -> Response:
         params = self.list_params_class(data=request.query_params)
@@ -63,18 +72,18 @@ class EntityViewSet(viewsets.ViewSet):
                 "page": page.page,
                 "page_size": page.page_size,
                 "total_pages": page.total_pages,
-                "results": self.serializer_class(page.items, many=True).data,
+                "results": self._render(page.items, many=True),
             }
         )
 
     def retrieve(self, request: Request, pk: str) -> Response:
         entity = self.use_cases.get.execute(int(pk))
-        return Response(self.serializer_class(entity).data)
+        return Response(self._render(entity))
 
     def create(self, request: Request) -> Response:
         payload = self._validated(request)
         entity = self.use_cases.create.execute(payload)
-        return Response(self.serializer_class(entity).data, status=status.HTTP_201_CREATED)
+        return Response(self._render(entity), status=status.HTTP_201_CREATED)
 
     def update(self, request: Request, pk: str) -> Response:
         return self._update(request, int(pk), partial=False)
@@ -86,10 +95,22 @@ class EntityViewSet(viewsets.ViewSet):
         self.use_cases.delete.execute(int(pk))
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=True, methods=["post", "delete"], url_path="image", parser_classes=[MultiPartParser])
+    def image(self, request: Request, pk: str) -> Response:
+        """``POST`` a multipart ``image`` file to set the card art; ``DELETE`` to remove it."""
+        if request.method == "DELETE":
+            return Response(self._render(self.use_cases.remove_image.execute(int(pk))))
+        serializer = ImageUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        file = serializer.validated_data["image"]
+        # Read one byte past the limit so oversized files are rejected without loading them whole.
+        upload = ImageUpload(content=file.read(MAX_IMAGE_BYTES + 1), filename=file.name)
+        return Response(self._render(self.use_cases.set_image.execute(int(pk), upload)))
+
     def _update(self, request: Request, entity_id: int, partial: bool) -> Response:
         payload = self._validated(request, partial=partial)
         entity = self.use_cases.update.execute(entity_id, payload)
-        return Response(self.serializer_class(entity).data)
+        return Response(self._render(entity))
 
     def _validated(self, request: Request, partial: bool = False) -> dict:
         serializer = self.serializer_class(data=request.data, partial=partial)
@@ -109,6 +130,7 @@ def meta(request: Request) -> Response:
             "rarities": _labelled(Rarity),
             "skill_kinds": _labelled(SkillKind),
             "max_page_size": MAX_PAGE_SIZE,
+            "max_image_bytes": MAX_IMAGE_BYTES,
         }
     )
 

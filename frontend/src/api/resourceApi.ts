@@ -10,6 +10,8 @@ export interface ResourceApi<T extends BaseEntity> {
   create(payload: Partial<T>): Promise<T>
   update(id: number, payload: Partial<T>): Promise<T>
   remove(id: number): Promise<void>
+  uploadImage(id: number, file: File): Promise<T>
+  removeImage(id: number): Promise<T>
 }
 
 /** REST client for one backend resource (``/api/<path>/``). */
@@ -32,5 +34,11 @@ export function createResourceApi<T extends BaseEntity>(path: string): ResourceA
     create: (payload) => request<T>(base, { method: 'POST', body: JSON.stringify(payload) }),
     update: (id, payload) => request<T>(`${base}${id}/`, { method: 'PUT', body: JSON.stringify(payload) }),
     remove: (id) => request<void>(`${base}${id}/`, { method: 'DELETE' }),
+    uploadImage: (id, file) => {
+      const body = new FormData()
+      body.append('image', file)
+      return request<T>(`${base}${id}/image/`, { method: 'POST', body })
+    },
+    removeImage: (id) => request<T>(`${base}${id}/image/`, { method: 'DELETE' }),
   }
 }

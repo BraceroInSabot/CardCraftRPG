@@ -24,9 +24,13 @@ def _provider(attribute: str):
     return lambda: getattr(get_container(), attribute)
 
 
+def _storage():
+    return get_container().image_storage
+
+
 router = DefaultRouter(trailing_slash=True)
 for prefix, name, attribute, serializer, list_params in RESOURCES:
-    viewset = EntityViewSet.for_resource(name, _provider(attribute), serializer, list_params)
+    viewset = EntityViewSet.for_resource(name, _provider(attribute), _storage, serializer, list_params)
     router.register(prefix, viewset, basename=prefix)
 
 urlpatterns = [

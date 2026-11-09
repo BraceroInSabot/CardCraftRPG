@@ -44,6 +44,14 @@ filters), check the preview and press **Print**. In the browser print dialog kee
 **100%** and enable **background graphics**. Cards are laid out 3 × 3 on A4 with dashed cut guides.
 Long descriptions shrink automatically to fit the card.
 
+## Card appearance
+
+Every card has a **background color** (white by default; presets or any hex color) and an optional
+**image** shown below the title. The form shows a live preview. Text switches to light ink on dark
+backgrounds automatically. Images must be PNG, JPEG, WebP or GIF up to 5 MB; the backend checks the
+real file content with Pillow. Files are stored in `backend/media/cards/` (Django storage API, so
+S3 or similar can be plugged in through settings) and served by Django in development.
+
 ## Architecture (backend)
 
 Clean Architecture: dependencies point inwards only.
@@ -51,8 +59,10 @@ Clean Architecture: dependencies point inwards only.
 ```
 backend/cardcraft/
 ├── domain/            Entities with self-validation, value objects, repository ports. No Django.
-├── application/       Generic use cases (Create/Update/Get/List/Delete) + integrity rules.
+├── application/       Generic use cases (Create/Update/Get/List/Delete, Set/Remove image),
+│                      integrity rules and ports for external services (ImageStorage, ImageInspector).
 ├── infrastructure/
+│   ├── images.py      Pillow inspector + Django storage adapter for card images.
 │   └── persistence/   Django app: ORM models, migrations, mappers, DjangoRepository, seed command.
 ├── presentation/api/  DRF serializers, one generic EntityViewSet, exception handler, routes.
 └── container.py       Composition root: wires repositories, rules and use cases.
@@ -69,6 +79,8 @@ backend/cardcraft/
 ### Domain rules
 
 - Items, races and classes belong to a system and optionally to one campaign **of that system**.
+- The image of a card is only changed through its image endpoint, never through create/update input.
+  Replacing, removing or deleting a card removes the old file.
 - A campaign cannot move to another system after creation.
 - Deleting a system deletes everything in it; deleting a campaign keeps its content (unlinked);
   deleting a race or class deletes its skills.
@@ -92,6 +104,10 @@ and `ids=1,2,3`. Lists answer `{count, page, page_size, total_pages, results}`. 
 `400` with `{field: [messages]}`, whether they come from the serializer or from a domain rule.
 `GET /api/meta/` returns the rarity and skill-kind choices.
 
+Every resource also has `POST /api/<resource>/<id>/image/` (multipart field `image`) to set or replace
+the card image and `DELETE /api/<resource>/<id>/image/` to remove it. Cards expose `background_color`
+(writable, `#rrggbb`) and `image_url` (read-only).
+
 ## Frontend structure
 
 ```
@@ -108,4 +124,5 @@ Adding a resource to the UI is a new entry in `resources/definitions.tsx`.
 
 ## Not in this MVP
 
-No authentication or per-user data, no images on cards, A4 only (Letter fits only two rows of cards).
+No authentication or per-user data; A4 only (Letter fits only two rows of cards). Images of cards removed
+by a cascade (e.g. deleting a whole system) stay on disk.

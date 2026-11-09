@@ -54,3 +54,28 @@ class InMemoryRepository(Repository[E], Generic[E]):
 
     def delete(self, entity_id: int) -> None:
         self._rows.pop(entity_id, None)
+
+
+class FakeImageInspector:
+    """Treats bytes starting with ``PNG`` as a PNG image and anything else as not an image."""
+
+    def detect_format(self, content: bytes) -> str | None:
+        return "png" if content.startswith(b"PNG") else None
+
+
+class FakeImageStorage:
+    def __init__(self) -> None:
+        self.files: dict[str, bytes] = {}
+        self._counter = 0
+
+    def save(self, content: bytes, extension: str) -> str:
+        self._counter += 1
+        key = f"cards/{self._counter}.{extension}"
+        self.files[key] = content
+        return key
+
+    def delete(self, key: str) -> None:
+        self.files.pop(key, None)
+
+    def url(self, key: str) -> str:
+        return f"/media/{key}"

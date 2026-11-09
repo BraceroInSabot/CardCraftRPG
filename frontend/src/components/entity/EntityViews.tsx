@@ -3,6 +3,7 @@ import { IconPencil, IconTrash } from '@tabler/icons-react'
 import type { BaseEntity } from '../../domain/types'
 import type { Lookups } from '../../hooks/useLookups'
 import type { ResourceDefinition } from '../../resources/types'
+import { cardFor } from '../../resources/cards'
 import { GameCard } from '../cards/GameCard'
 import classes from './EntityViews.module.css'
 
@@ -43,7 +44,7 @@ export function CardGridView(props: ViewProps) {
         return (
           <div key={entity.id} className={classes.slot} data-selected={isSelected || undefined}>
             <div className={classes.cardFrame} onClick={() => onToggle(entity.id)}>
-              <GameCard card={resource.toCard(entity, lookups)} />
+              <GameCard card={cardFor(resource, entity, lookups)} />
             </div>
             <Group justify="space-between" mt={6} px={2}>
               <Checkbox

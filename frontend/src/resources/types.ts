@@ -16,6 +16,9 @@ export interface CardModel {
   origin?: string
   /** Small closing line, usually the campaign or parent race/class. */
   footnote?: string
+  /** Card background (hex). Text switches to light ink on dark colors. */
+  background?: string
+  imageUrl?: string | null
 }
 
 interface BaseField {

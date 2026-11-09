@@ -68,3 +68,7 @@ REST_FRAMEWORK = {
 }
 
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+
+# Uploaded card images. In production point DEFAULT_FILE_STORAGE/STORAGES at S3 or similar.
+MEDIA_URL = env("DJANGO_MEDIA_URL", "/media/")
+MEDIA_ROOT = Path(env("DJANGO_MEDIA_ROOT", str(BASE_DIR / "media")))

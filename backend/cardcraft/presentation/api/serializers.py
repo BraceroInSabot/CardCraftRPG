@@ -33,9 +33,33 @@ def _short_text() -> serializers.CharField:
 
 
 class NamedEntitySerializer(serializers.Serializer):
+    """Fields shared by every card.
+
+    ``image_url`` is resolved through the ``image_url`` callable in the serializer
+    context (the ``ImageStorage`` port), so the serializer stays storage-agnostic.
+    """
+
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(max_length=NAME_MAX_LENGTH)
     description = serializers.CharField(max_length=DESCRIPTION_MAX_LENGTH, required=False, allow_blank=True)
+    background_color = serializers.RegexField(
+        r"^#[0-9a-fA-F]{6}$",
+        required=False,
+        error_messages={"invalid": "Use a hex color such as #ffffff."},
+    )
+    image_url = serializers.SerializerMethodField()
+
+    def get_image_url(self, entity) -> str | None:
+        resolve = self.context.get("image_url")
+        if not entity.image or resolve is None:
+            return None
+        url = resolve(entity.image)
+        request = self.context.get("request")
+        return request.build_absolute_uri(url) if request is not None else url
+
+
+class ImageUploadSerializer(serializers.Serializer):
+    image = serializers.FileField(allow_empty_file=True)
 
 
 class RpgSystemSerializer(NamedEntitySerializer):

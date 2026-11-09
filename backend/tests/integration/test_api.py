@@ -131,3 +131,77 @@ def test_meta_exposes_choices(api):
     body = api.get("/api/meta/").json()
     assert {"value": "very_rare", "label": "Very Rare"} in body["rarities"]
     assert [k["value"] for k in body["skill_kinds"]] == ["passive", "active", "reaction"]
+
+
+# --------------------------------------------------------------------------
+# Card appearance
+# --------------------------------------------------------------------------
+
+
+def _png_bytes(color=(200, 40, 40)) -> bytes:
+    from io import BytesIO
+
+    from PIL import Image
+
+    buffer = BytesIO()
+    Image.new("RGB", (8, 12), color).save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+@pytest.fixture
+def media_root(settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path
+    return tmp_path
+
+
+def test_background_color_round_trip(api, system):
+    created = api.post(
+        "/api/items/", {"name": "Relic", "system_id": system["id"]}, format="json"
+    ).json()
+    assert created["background_color"] == "#ffffff"
+    assert created["image_url"] is None
+
+    patched = api.patch(f"/api/items/{created['id']}/", {"background_color": "#F4E3C1"}, format="json")
+    assert patched.json()["background_color"] == "#f4e3c1"
+
+    invalid = api.patch(f"/api/items/{created['id']}/", {"background_color": "beige"}, format="json")
+    assert invalid.status_code == 400
+    assert invalid.json() == {"background_color": ["Use a hex color such as #ffffff."]}
+
+
+def test_image_upload_replace_and_remove(api, system, media_root):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    race = api.post("/api/races/", {"name": "Elf", "system_id": system["id"]}, format="json").json()
+    url = f"/api/races/{race['id']}/image/"
+
+    first = api.post(url, {"image": SimpleUploadedFile("elf.png", _png_bytes(), "image/png")}, format="multipart")
+    assert first.status_code == 200
+    assert first.json()["image_url"].startswith("http://testserver/media/cards/")
+    stored = list((media_root / "cards").iterdir())
+    assert len(stored) == 1
+
+    api.post(url, {"image": SimpleUploadedFile("elf2.png", _png_bytes((0, 0, 0)), "image/png")}, format="multipart")
+    assert len(list((media_root / "cards").iterdir())) == 1  # previous file removed
+
+    fake = api.post(url, {"image": SimpleUploadedFile("evil.png", b"not an image", "image/png")}, format="multipart")
+    assert fake.status_code == 400
+    assert fake.json() == {"image": ["Upload a PNG, JPEG, WebP or GIF image."]}
+
+    removed = api.delete(url)
+    assert removed.status_code == 200
+    assert removed.json()["image_url"] is None
+    assert list((media_root / "cards").iterdir()) == []
+
+
+def test_deleting_a_card_deletes_its_image(api, system, media_root):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    item = api.post("/api/items/", {"name": "Relic", "system_id": system["id"]}, format="json").json()
+    api.post(
+        f"/api/items/{item['id']}/image/",
+        {"image": SimpleUploadedFile("relic.png", _png_bytes(), "image/png")},
+        format="multipart",
+    )
+    api.delete(f"/api/items/{item['id']}/")
+    assert list((media_root / "cards").iterdir()) == []

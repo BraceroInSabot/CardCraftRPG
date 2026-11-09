@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { QueryParams } from '../../api/http'
 import { useLookups } from '../../hooks/useLookups'
 import type { ResourceDefinition } from '../../resources/types'
+import { cardFor } from '../../resources/cards'
 import { GameCard } from '../cards/GameCard'
 import { CARDS_PER_PAGE, PrintSheet } from './PrintSheet'
 
@@ -26,7 +27,7 @@ export function PrintDialog({ resource, request, onClose }: Props) {
     enabled: request !== null,
   })
 
-  const cards = (query.data ?? []).map((entity) => ({ id: entity.id, card: resource.toCard(entity, lookups) }))
+  const cards = (query.data ?? []).map((entity) => ({ id: entity.id, card: cardFor(resource, entity, lookups) }))
   const sheets = Math.ceil(cards.length / CARDS_PER_PAGE)
   const ready = query.isSuccess && !lookups.loading
 

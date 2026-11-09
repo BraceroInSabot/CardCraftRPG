@@ -1,5 +1,7 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import type { CardModel } from '../../resources/types'
+import { DEFAULT_BACKGROUND } from '../../domain/types'
+import { inkFor } from './contrast'
 import classes from './GameCard.module.css'
 
 const MAX_BODY_PT = 8.5
@@ -39,10 +41,13 @@ function useFitText(text: string) {
 }
 
 export function GameCard({ card }: { card: CardModel }) {
-  const { containerRef, size } = useFitText(card.body)
+  const { containerRef, size } = useFitText(`${card.body}|${card.imageUrl ?? ''}`)
+  const background = card.background || DEFAULT_BACKGROUND
+  const { ink, muted, dark } = inkFor(background)
+  const style = { '--frame': card.frameColor, '--paper': background, '--ink': ink, '--muted': muted } as CSSProperties
 
   return (
-    <article className={classes.card} style={{ '--frame': card.frameColor } as CSSProperties}>
+    <article className={classes.card} style={style} data-dark={dark || undefined}>
       <header className={classes.band}>
         <span>{card.category}</span>
         {card.origin && <span className={classes.origin}>{card.origin}</span>}
@@ -56,6 +61,11 @@ export function GameCard({ card }: { card: CardModel }) {
                 {tag.label}
               </span>
             ))}
+          </div>
+        )}
+        {card.imageUrl && (
+          <div className={classes.art}>
+            <img src={card.imageUrl} alt="" loading="eager" decoding="sync" />
           </div>
         )}
         <div className={classes.body} ref={containerRef}>
