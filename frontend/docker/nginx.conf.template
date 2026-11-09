@@ -1,0 +1,42 @@
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Card images can be up to 5 MB.
+    client_max_body_size 6m;
+
+    gzip on;
+    gzip_min_length 1024;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    # REST API -> Django (Gunicorn). Host keeps the public host:port so image URLs point back here.
+    location /api/ {
+        proxy_pass ${BACKEND_URL};
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    # Uploaded card images, shared read-only with the backend through a volume.
+    location /media/ {
+        alias /usr/share/nginx/media/;
+        add_header X-Content-Type-Options nosniff;
+        add_header Cache-Control "public, max-age=604800";
+    }
+
+    # Hashed build assets never change.
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+
+    # Single-page app: unknown paths render index.html (React Router takes over).
+    location / {
+        add_header Cache-Control "no-cache";
+        try_files $uri $uri/ /index.html;
+    }
+}

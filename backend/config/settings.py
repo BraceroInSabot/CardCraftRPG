@@ -67,6 +67,9 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "cardcraft.presentation.api.exception_handler.api_exception_handler",
 }
 
+# Behind Nginx/another proxy: trust its scheme so absolute image URLs use https when it does.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
 
 # Uploaded card images. In production point DEFAULT_FILE_STORAGE/STORAGES at S3 or similar.

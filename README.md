@@ -8,10 +8,37 @@ classes and class skills), filter it on any page and print it as **6 × 9 cm car
 | Backend | Python 3.12+, Django 6.1, Django REST Framework, PostgreSQL 16 |
 | Frontend | React 19, TypeScript, Vite, Mantine 9, TanStack Query, React Router |
 
-## Quick start
+## Run with Docker (recommended)
 
 ```bash
-# 1. Database
+cp .env.example .env              # optional: change ports, secret key, passwords
+docker compose up --build         # http://localhost:8080
+```
+
+| Service | Image | Role |
+| --- | --- | --- |
+| `db` | `postgres:16-alpine` | Database (volume `pgdata`) |
+| `backend` | `backend/Dockerfile` (Python 3.13 slim + Gunicorn) | Runs migrations on start, then serves `/api` |
+| `frontend` | `frontend/Dockerfile` (Node build → Nginx) | Serves the app, proxies `/api` to the backend, serves `/media` |
+
+Card images live in the `media` volume: the backend writes them, Nginx serves them read-only.
+Set `SEED_DEMO=true` in `.env` to load the demo data on start-up. If you open the app from another
+device, add that host name or IP to `DJANGO_ALLOWED_HOSTS`. Always set your own `DJANGO_SECRET_KEY`
+and database password outside your own machine.
+
+Useful commands:
+
+```bash
+docker compose exec backend python manage.py seed_demo   # demo data
+docker compose logs -f backend                           # backend logs
+docker compose down                                      # stop (data kept in volumes)
+docker compose down -v                                   # stop and erase database + images
+```
+
+## Local development (without Docker for the apps)
+
+```bash
+# 1. Database only
 docker compose up -d db
 
 # 2. Backend (http://localhost:8000/api/)
@@ -50,7 +77,8 @@ Every card has a **background color** (white by default; presets or any hex colo
 **image** shown below the title. The form shows a live preview. Text switches to light ink on dark
 backgrounds automatically. Images must be PNG, JPEG, WebP or GIF up to 5 MB; the backend checks the
 real file content with Pillow. Files are stored in `backend/media/cards/` (Django storage API, so
-S3 or similar can be plugged in through settings) and served by Django in development.
+S3 or similar can be plugged in through settings). In development Django serves them; in Docker,
+Nginx does.
 
 ## Architecture (backend)
 
