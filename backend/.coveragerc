@@ -1,0 +1,15 @@
+[run]
+source =
+    cardcraft/domain
+    cardcraft/application
+    cardcraft/presentation/api
+
+[report]
+skip_covered = False
+skip_empty = True
+
+[html]
+directory = tests/reports/coverage
+
+[json]
+pretty_print = True

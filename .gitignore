@@ -16,3 +16,7 @@ venv/
 
 # Uploaded card images
 backend/media/
+
+# Test coverage output
+.coverage
+backend/tests/reports/
