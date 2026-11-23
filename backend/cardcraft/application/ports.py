@@ -33,3 +33,17 @@ class ImageStorage(ABC):
     @abstractmethod
     def url(self, key: str) -> str:
         """Public URL for a stored file."""
+
+
+class PasswordService(ABC):
+    """Credential checks for a Master. Hashing and password policy live behind this port."""
+
+    @abstractmethod
+    def verify(self, master_id: int, raw_password: str) -> bool: ...
+
+    @abstractmethod
+    def validate(self, master_id: int, raw_password: str) -> None:
+        """Raise ``ValidationError`` (field ``new_password``) if the password is too weak."""
+
+    @abstractmethod
+    def change(self, master_id: int, raw_password: str) -> None: ...

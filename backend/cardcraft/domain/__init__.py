@@ -1,3 +1,4 @@
+from .accounts import Master, MasterRepository
 from .entities import (
     Campaign,
     CharacterClass,
@@ -21,6 +22,8 @@ __all__ = [
     "DomainError",
     "Entity",
     "Item",
+    "Master",
+    "MasterRepository",
     "ListQuery",
     "NotFoundError",
     "Page",

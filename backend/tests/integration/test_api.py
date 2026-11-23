@@ -1,12 +1,8 @@
 import pytest
-from rest_framework.test import APIClient
 
 pytestmark = pytest.mark.django_db
 
-
-@pytest.fixture
-def api():
-    return APIClient()
+# ``api`` (a client signed in as a Master) comes from conftest.py.
 
 
 @pytest.fixture

@@ -4,7 +4,8 @@ import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useEffectEvent } from 'react'
 import { ApiError } from '../../api/http'
-import { DEFAULT_BACKGROUND, type BaseEntity } from '../../domain/types'
+import { useCardDefaults } from '../../auth/useAuth'
+import type { BaseEntity } from '../../domain/types'
 import { useLookups, type Lookups } from '../../hooks/useLookups'
 import { cardFor } from '../../resources/cards'
 import type { FieldDef, ResourceDefinition } from '../../resources/types'
@@ -105,10 +106,11 @@ function EntityForm({
   const lookups = useLookups()
   const queryClient = useQueryClient()
   const image = useImageDraft(entity?.image_url ?? null)
+  const cardDefaults = useCardDefaults()
   const form = useForm<FormValues>({
     initialValues: {
       ...initialValues(resource.fields, entity, defaults),
-      background_color: entity?.background_color ?? DEFAULT_BACKGROUND,
+      background_color: entity?.background_color ?? cardDefaults.backgroundColor,
     },
     validate: (values) => {
       const errors: Record<string, string> = {}

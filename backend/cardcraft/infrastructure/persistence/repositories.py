@@ -28,6 +28,8 @@ class DjangoRepository(Repository[E], Generic[E]):
         search_fields: Sequence[str] = ("name", "description"),
         default_ordering: str = "name",
         related_filters: Mapping[str, str] | None = None,
+        owner_path: str = "system__owner_id",
+        owner_id: int | None = None,
     ):
         self._model = model
         self._entity_cls = entity_cls
@@ -36,17 +38,26 @@ class DjangoRepository(Repository[E], Generic[E]):
         self._default_ordering = default_ordering
         # Filters on fields of related entities, e.g. {"system_id": "race__system_id"}.
         self._related_filters = dict(related_filters or {})
+        # ORM path from a row to its owning Master, e.g. "race__system__owner_id". With an
+        # ``owner_id`` every read and write is limited to that Master's rows: rows of other
+        # Masters behave as missing (NotFoundError -> 404) instead of being revealed.
+        self._owner_path = owner_path
+        self._owner_id = owner_id
+
+    @property
+    def _owns_directly(self) -> bool:
+        return self._owner_path == "owner_id"
 
     # -- reads -------------------------------------------------------------
 
     def get(self, entity_id: int) -> E:
         try:
-            return self._mapper.to_entity(self._model.objects.get(pk=entity_id))
+            return self._mapper.to_entity(self._rows().get(pk=entity_id))
         except self._model.DoesNotExist:
             raise NotFoundError(self._entity_cls.entity_name, entity_id) from None
 
     def exists(self, entity_id: int) -> bool:
-        return self._model.objects.filter(pk=entity_id).exists()
+        return self._rows().filter(pk=entity_id).exists()
 
     def list(self, query: ListQuery) -> Page[E]:
         queryset = self._apply_ordering(self._filtered(query), query.ordering)
@@ -62,12 +73,15 @@ class DjangoRepository(Repository[E], Generic[E]):
     # -- writes ------------------------------------------------------------
 
     def add(self, entity: E) -> E:
-        instance = self._model.objects.create(**self._mapper.to_model_values(entity))
+        values = self._mapper.to_model_values(entity)
+        if self._owns_directly and self._owner_id is not None:
+            values["owner_id"] = self._owner_id
+        instance = self._model.objects.create(**values)
         return self._mapper.to_entity(instance)
 
     def update(self, entity: E) -> E:
         try:
-            instance = self._model.objects.get(pk=entity.id)
+            instance = self._rows().get(pk=entity.id)
         except self._model.DoesNotExist:
             raise NotFoundError(self._entity_cls.entity_name, entity.id) from None
         for attr, value in self._mapper.to_model_values(entity).items():
@@ -76,12 +90,18 @@ class DjangoRepository(Repository[E], Generic[E]):
         return self._mapper.to_entity(instance)
 
     def delete(self, entity_id: int) -> None:
-        self._model.objects.filter(pk=entity_id).delete()
+        self._rows().filter(pk=entity_id).delete()
 
     # -- helpers -----------------------------------------------------------
 
-    def _filtered(self, query: ListQuery) -> models.QuerySet:
+    def _rows(self) -> models.QuerySet:
         queryset = self._model.objects.all()
+        if self._owner_id is not None:
+            queryset = queryset.filter(**{self._owner_path: self._owner_id})
+        return queryset
+
+    def _filtered(self, query: ListQuery) -> models.QuerySet:
+        queryset = self._rows()
         if query.ids:
             queryset = queryset.filter(pk__in=query.ids)
         if query.search and self._search_fields:

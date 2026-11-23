@@ -1,8 +1,11 @@
 import { Button, Stack, Text, Title } from '@mantine/core'
 import { Link, Route, Routes, useParams } from 'react-router-dom'
 import { EntityPage } from './components/entity/EntityPage'
+import { RequireAuth } from './auth/RequireAuth'
 import { AppLayout } from './components/layout/AppLayout'
 import { HomePage } from './pages/HomePage'
+import { LoginPage } from './pages/LoginPage'
+import { SettingsPage } from './pages/SettingsPage'
 import { findResource } from './resources/definitions'
 
 function ResourceRoute() {
@@ -28,8 +31,16 @@ function NotFound() {
 export default function App() {
   return (
     <Routes>
-      <Route element={<AppLayout />}>
+      <Route path="/login" element={<LoginPage />} />
+      <Route
+        element={
+          <RequireAuth>
+            <AppLayout />
+          </RequireAuth>
+        }
+      >
         <Route index element={<HomePage />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route path=":resourceKey" element={<ResourceRoute />} />
         <Route path="*" element={<NotFound />} />
       </Route>

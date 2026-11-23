@@ -79,3 +79,37 @@ class FakeImageStorage:
 
     def url(self, key: str) -> str:
         return f"/media/{key}"
+
+
+class InMemoryMasterRepository:
+    def __init__(self, *masters):
+        self.rows = {master.id: master for master in masters}
+
+    def get(self, master_id):
+        if master_id not in self.rows:
+            raise NotFoundError("Master", master_id)
+        return self.rows[master_id]
+
+    def update(self, master):
+        self.get(master.id)
+        self.rows[master.id] = master
+        return master
+
+
+class FakePasswordService:
+    """Plain-text passwords; anything shorter than 8 characters is "too weak"."""
+
+    def __init__(self, passwords: dict[int, str]):
+        self.passwords = dict(passwords)
+
+    def verify(self, master_id, raw_password):
+        return self.passwords.get(master_id) == raw_password
+
+    def validate(self, master_id, raw_password):
+        from cardcraft.domain.exceptions import ValidationError
+
+        if len(raw_password) < 8:
+            raise ValidationError.single("new_password", "Too short.")
+
+    def change(self, master_id, raw_password):
+        self.passwords[master_id] = raw_password

@@ -1,5 +1,6 @@
+from .accounts import AccountUseCases, ChangePassword, GetMaster, UpdateMasterFields
 from .images import ALLOWED_IMAGE_FORMATS, MAX_IMAGE_BYTES, RemoveCardImage, SetCardImage
-from .ports import ImageInspector, ImageStorage, ImageUpload
+from .ports import ImageInspector, ImageStorage, ImageUpload, PasswordService
 from .rules import CampaignBelongsToSystem, ImmutableField, IntegrityRule, ReferenceExists
 from .use_cases import (
     CardUseCases,
@@ -13,6 +14,11 @@ from .use_cases import (
 )
 
 __all__ = [
+    "AccountUseCases",
+    "ChangePassword",
+    "GetMaster",
+    "PasswordService",
+    "UpdateMasterFields",
     "ALLOWED_IMAGE_FORMATS",
     "CardUseCases",
     "ImageInspector",

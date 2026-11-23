@@ -4,8 +4,10 @@ Nothing outside ``cardcraft.infrastructure`` imports these models; the rest
 of the system talks to repositories that return domain entities.
 """
 
+from django.conf import settings
 from django.db import models
 
+from cardcraft.domain.accounts import DISPLAY_NAME_MAX_LENGTH
 from cardcraft.domain.entities import (
     DEFAULT_BACKGROUND_COLOR,
     DESCRIPTION_MAX_LENGTH,
@@ -43,6 +45,9 @@ class NamedModel(TimestampedModel):
 
 
 class RpgSystemModel(NamedModel):
+    # Every card is owned by the Master who owns its system.
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="rpg_systems")
+
     class Meta:
         db_table = "rpg_system"
 
@@ -106,3 +111,14 @@ class ClassSkillModel(SkillModel):
 
     class Meta:
         db_table = "class_skill"
+
+
+class MasterProfileModel(TimestampedModel):
+    """Master data that Django's ``User`` does not hold (display name, card defaults)."""
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="master_profile")
+    display_name = models.CharField(max_length=DISPLAY_NAME_MAX_LENGTH, blank=True, default="")
+    default_background_color = models.CharField(max_length=7, default=DEFAULT_BACKGROUND_COLOR)
+
+    class Meta:
+        db_table = "master_profile"
