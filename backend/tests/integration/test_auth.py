@@ -254,3 +254,21 @@ def test_seed_demo_goes_to_the_chosen_master(api, other, make_master):
     assert api.get("/api/systems/").json()["count"] == 1
     assert api.get("/api/class-skills/").json()["count"] > 0
     assert other.get("/api/systems/").json()["count"] == 0
+
+
+def test_seed_master_creates_the_default_account_once(anonymous, settings):
+    settings.DEBUG = True
+    call_command("seed_master")
+    call_command("seed_master")
+    assert _login(anonymous, "bracero", "bracero123").status_code == 200
+
+
+def test_seed_master_refuses_without_debug(settings):
+    from django.contrib.auth import get_user_model
+    from django.core.management.base import CommandError
+
+    settings.DEBUG = False
+    with pytest.raises(CommandError):
+        call_command("seed_master")
+    call_command("seed_master", force=True)
+    assert get_user_model().objects.filter(username="bracero").exists()

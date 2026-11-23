@@ -74,7 +74,13 @@ is no self sign-up: create accounts from the command line.
 python manage.py create_master --username gandalf --password '<a strong password>'
 # Docker: set MASTER_USERNAME / MASTER_PASSWORD in .env and the account is created on start-up
 python manage.py seed_demo --owner gandalf   # demo data for that Master
+python manage.py seed_master                 # default dev Master: bracero / bracero123 (DEBUG only)
 ```
+
+`seed_master` skips the password strength rules on purpose and refuses to run with `DEBUG` off
+unless you pass `--force`. In Docker, `SEED_MASTER=true` runs it (forced) on start-up; run
+`seed_master` before `seed_demo` so the demo data goes to `bracero`. Never enable it on a public
+server, or change the password in **Settings** right after.
 
 - **Sessions + CSRF.** The SPA and the API share one origin (Nginx in Docker, the Vite proxy in
   development). Login uses Django's session cookie; unsafe requests send the `csrftoken` cookie
