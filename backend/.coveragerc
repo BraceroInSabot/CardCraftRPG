@@ -3,6 +3,7 @@ source =
     cardcraft/domain
     cardcraft/application
     cardcraft/presentation/api
+    cardcraft/infrastructure
 
 [report]
 skip_covered = False
