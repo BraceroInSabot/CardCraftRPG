@@ -1,7 +1,11 @@
-import { AppShell, Burger, Group, NavLink, ScrollArea, Text, Title } from '@mantine/core'
+import { AppShell, Avatar, Burger, Group, Menu, NavLink, ScrollArea, Text, Title, UnstyledButton } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { IconHome2 } from '@tabler/icons-react'
-import { NavLink as RouterLink, Outlet, useLocation } from 'react-router-dom'
+import { notifications } from '@mantine/notifications'
+import { IconChevronDown, IconHome2, IconLogout, IconSettings } from '@tabler/icons-react'
+import { useMutation } from '@tanstack/react-query'
+import { NavLink as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { accountApi } from '../../api/accountApi'
+import { useAuth } from '../../auth/useAuth'
 import { CARD_RESOURCE_KEYS, resources } from '../../resources/definitions'
 import type { ResourceDefinition } from '../../resources/types'
 
@@ -9,6 +13,47 @@ const groups: { title: string; keys: string[] }[] = [
   { title: 'Cards', keys: CARD_RESOURCE_KEYS },
   { title: 'Setting', keys: ['systems', 'campaigns'] },
 ]
+
+function UserMenu() {
+  const { master, reset } = useAuth()
+  const navigate = useNavigate()
+  const logout = useMutation({
+    mutationFn: accountApi.logout,
+    onSuccess: () => {
+      reset(null)
+      navigate('/login', { replace: true })
+    },
+    onError: (error) => notifications.show({ color: 'red', title: 'Could not sign out', message: error.message }),
+  })
+  if (!master) return null
+  const name = master.display_name || master.username
+
+  return (
+    <Menu position="bottom-end" width={200}>
+      <Menu.Target>
+        <UnstyledButton aria-label="Account menu">
+          <Group gap={8}>
+            <Avatar size={30} radius="xl" color="grape">
+              {name.slice(0, 1).toUpperCase()}
+            </Avatar>
+            <Text size="sm" fw={600} visibleFrom="xs">
+              {name}
+            </Text>
+            <IconChevronDown size={14} />
+          </Group>
+        </UnstyledButton>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Item component={RouterLink} to="/settings" leftSection={<IconSettings size={16} />}>
+          Settings
+        </Menu.Item>
+        <Menu.Item color="red" leftSection={<IconLogout size={16} />} onClick={() => logout.mutate()}>
+          Sign out
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
+  )
+}
 
 export function AppLayout() {
   const [opened, { toggle, close }] = useDisclosure()
@@ -43,6 +88,9 @@ export function AppLayout() {
           <Title order={3} ff="Alegreya, Georgia, serif" fw={800}>
             Card Craft RPG
           </Title>
+          <Group ml="auto">
+            <UserMenu />
+          </Group>
         </Group>
       </AppShell.Header>
 

@@ -15,6 +15,11 @@ if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
   done
 fi
 
+# First Master account (there is no self sign-up). Skipped when it already exists.
+if [ -n "${MASTER_USERNAME:-}" ] && [ -n "${MASTER_PASSWORD:-}" ]; then
+  python manage.py create_master
+fi
+
 if [ "${SEED_DEMO:-false}" = "true" ]; then
   python manage.py seed_demo
 fi

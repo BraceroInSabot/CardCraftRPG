@@ -150,7 +150,16 @@ class NamedEntity(Entity):
 
 @dataclass(kw_only=True)
 class RpgSystem(NamedEntity):
+    """Root of a Master's content: every other card is owned through its system."""
+
     entity_name: ClassVar[str] = "RPG system"
+    managed_fields: ClassVar[frozenset[str]] = NamedEntity.managed_fields | {"owner_id"}
+
+    owner_id: int | None = None  # assigned by the owner-scoped repository on creation
+
+    def _collect_errors(self, errors: _ErrorCollector) -> None:
+        super()._collect_errors(errors)
+        errors.optional_reference("owner_id", self.owner_id)
 
 
 @dataclass(kw_only=True)

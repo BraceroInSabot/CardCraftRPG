@@ -46,7 +46,8 @@ cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
 python manage.py migrate
-python manage.py seed_demo        # optional sample data
+python manage.py create_master --username gandalf --password '<password>'
+python manage.py seed_demo        # optional sample data (for the first Master)
 python manage.py runserver
 
 # 3. Frontend (http://localhost:5173)
@@ -63,6 +64,43 @@ Configuration comes from environment variables; see `backend/.env.example`.
 cd backend && pytest              # unit + API integration tests (needs PostgreSQL)
 cd frontend && npm run typecheck && npm run lint && npm run build
 ```
+
+## Accounts (Masters)
+
+Every page and every `/api/*` endpoint (except `/api/health/`) needs a signed-in **Master**. There
+is no self sign-up: create accounts from the command line.
+
+```bash
+python manage.py create_master --username gandalf --password '<a strong password>'
+# Docker: set MASTER_USERNAME / MASTER_PASSWORD in .env and the account is created on start-up
+python manage.py seed_demo --owner gandalf   # demo data for that Master
+```
+
+- **Sessions + CSRF.** The SPA and the API share one origin (Nginx in Docker, the Vite proxy in
+  development). Login uses Django's session cookie; unsafe requests send the `csrftoken` cookie
+  back in `X-CSRFToken`. Anonymous API calls answer `401`. Add the address you open the app from to
+  `CSRF_TRUSTED_ORIGINS` if it is not `localhost`. Over HTTPS set `SESSION_COOKIE_SECURE=true` and
+  `CSRF_COOKIE_SECURE=true`.
+- **Ownership.** An RPG system belongs to the Master who created it; campaigns, items, races,
+  classes and skills belong to whoever owns their system. Another Master's ids answer `404` on
+  every operation (list, filter, edit, delete, image, print), and cannot be used as parents.
+- **Login protection.** Wrong username and wrong password get the same message; login attempts
+  are throttled to 5 per minute (`LOGIN_THROTTLE_RATE`).
+- **Settings** (`/settings`): display name and email, the default background of new cards, and the
+  password (the current password is required; other sessions are signed out).
+- **Upgrading.** Migration `0005` gives content created before accounts existed to the oldest
+  active user. If there is content but no user, it creates `master` with no usable password: run
+  `python manage.py changepassword master` before signing in.
+
+| Endpoint | Method | Purpose |
+| --- | --- | --- |
+| `/api/auth/csrf/` | GET | Sets the CSRF cookie |
+| `/api/auth/login/` | POST | `{username, password}` → the Master |
+| `/api/auth/logout/` | POST | Ends the session |
+| `/api/account/` | GET | The signed-in Master |
+| `/api/account/profile/` | PATCH | `{display_name, email}` |
+| `/api/account/card-defaults/` | PATCH | `{default_background_color}` |
+| `/api/account/password/` | POST | `{current_password, new_password}` |
 
 ## Printing
 

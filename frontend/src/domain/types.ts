@@ -108,3 +108,13 @@ export const SKILL_KINDS: Choice<SkillKind>[] = [
 export function choiceFor<V extends string>(choices: Choice<V>[], value: V): Choice<V> | undefined {
   return choices.find((choice) => choice.value === value)
 }
+
+/** The signed-in game master. */
+export interface Master {
+  id: number
+  username: string
+  display_name: string
+  email: string
+  /** Background preselected for new cards. */
+  default_background_color: string
+}

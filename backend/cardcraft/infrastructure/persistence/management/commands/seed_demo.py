@@ -1,9 +1,10 @@
 """Load a small demo data set through the application use cases."""
 
-from django.core.management.base import BaseCommand
+from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from cardcraft.container import get_container
+from cardcraft.container import container_for
 from cardcraft.domain.queries import ListQuery
 
 DEMO = {
@@ -68,11 +69,18 @@ DEMO = {
 
 
 class Command(BaseCommand):
-    help = "Create a demo RPG system with campaigns, items, races, classes and skills."
+    help = "Create a demo RPG system with campaigns, items, races, classes and skills for a Master."
+
+    def add_arguments(self, parser):
+        parser.add_argument("--owner", help="Username of the Master who gets the data (default: the first Master).")
 
     @transaction.atomic
     def handle(self, *args, **options):
-        container = get_container()
+        owner = self._owner(options.get("owner"))
+        if owner is None:
+            self.stdout.write(self.style.WARNING("No Master account yet; create one with create_master first."))
+            return
+        container = container_for(owner.pk)
         existing = container.systems.list.execute(ListQuery(search=DEMO["system"]["name"]))
         if existing.total:
             self.stdout.write(self.style.WARNING("Demo data already present; nothing to do."))
@@ -103,4 +111,14 @@ class Command(BaseCommand):
             for skill in data["skills"]:
                 container.class_skills.create.execute({**skill, "class_id": character_class.id})
 
-        self.stdout.write(self.style.SUCCESS(f"Demo system '{system.name}' created."))
+        self.stdout.write(self.style.SUCCESS(f"Demo system '{system.name}' created for {owner.username}."))
+
+    @staticmethod
+    def _owner(username: str | None):
+        users = get_user_model().objects.filter(is_active=True)
+        if not username:
+            return users.order_by("pk").first()
+        try:
+            return users.get(username=username)
+        except get_user_model().DoesNotExist:
+            raise CommandError(f"There is no active Master called '{username}'.") from None

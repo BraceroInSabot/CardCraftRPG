@@ -32,6 +32,27 @@ async function toApiError(response: Response): Promise<ApiError> {
   return new ApiError(response.status, `The server answered with status ${response.status}.`)
 }
 
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
+const CSRF_COOKIE = 'csrftoken'
+
+let unauthorizedHandler: (() => void) | null = null
+
+/** Called whenever the API answers 401 (session missing or expired). */
+export function onUnauthorized(handler: (() => void) | null) {
+  unauthorizedHandler = handler
+}
+
+function readCookie(name: string): string | null {
+  const match = document.cookie.split('; ').find((part) => part.startsWith(`${name}=`))
+  return match ? decodeURIComponent(match.slice(name.length + 1)) : null
+}
+
+/** Django only accepts unsafe requests that echo the CSRF cookie; fetch it once if missing. */
+async function csrfToken(): Promise<string | null> {
+  if (!readCookie(CSRF_COOKIE)) await fetch(`${API_BASE}/auth/csrf/`, { credentials: 'same-origin' })
+  return readCookie(CSRF_COOKIE)
+}
+
 export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response: Response
   try {
@@ -39,10 +60,15 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
     const headers = new Headers(init.headers)
     headers.set('Accept', 'application/json')
     if (!(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
-    response = await fetch(`${API_BASE}${path}`, { ...init, headers })
+    if (!SAFE_METHODS.has((init.method ?? 'GET').toUpperCase())) {
+      const token = await csrfToken()
+      if (token) headers.set('X-CSRFToken', token)
+    }
+    response = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: 'same-origin' })
   } catch {
     throw new ApiError(0, 'Could not reach the API. Check that the backend is running.')
   }
+  if (response.status === 401) unauthorizedHandler?.()
   if (!response.ok) throw await toApiError(response)
   if (response.status === 204) return undefined as T
   return (await response.json()) as T

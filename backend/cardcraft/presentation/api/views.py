@@ -9,8 +9,9 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from rest_framework import status, viewsets
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
 from rest_framework.parsers import MultiPartParser
+from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -20,7 +21,8 @@ from cardcraft.domain.queries import MAX_PAGE_SIZE
 
 from .serializers import ImageUploadSerializer, ListParamsSerializer, NamedEntitySerializer
 
-UseCasesProvider = Callable[[], CardUseCases]
+# Receives the signed-in Master id and returns use cases limited to their content.
+UseCasesProvider = Callable[[int], CardUseCases]
 StorageProvider = Callable[[], ImageStorage]
 
 
@@ -56,7 +58,7 @@ class EntityViewSet(viewsets.ViewSet):
 
     @property
     def use_cases(self) -> CardUseCases:
-        return self.use_cases_provider()
+        return self.use_cases_provider(self.request.user.pk)
 
     def _render(self, entity_or_entities, many: bool = False):
         context = {"request": self.request, "image_url": self.storage_provider().url}
@@ -136,5 +138,7 @@ def meta(request: Request) -> Response:
 
 
 @api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
 def health(request: Request) -> Response:
     return Response({"status": "ok"})

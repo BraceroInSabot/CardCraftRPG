@@ -3,8 +3,9 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from cardcraft.container import get_container
+from cardcraft.container import container_for, get_image_storage
 
+from . import account_views as accounts
 from . import serializers as s
 from .views import EntityViewSet, health, meta
 
@@ -21,20 +22,23 @@ RESOURCES = (
 
 
 def _provider(attribute: str):
-    return lambda: getattr(get_container(), attribute)
-
-
-def _storage():
-    return get_container().image_storage
+    return lambda owner_id: getattr(container_for(owner_id), attribute)
 
 
 router = DefaultRouter(trailing_slash=True)
 for prefix, name, attribute, serializer, list_params in RESOURCES:
-    viewset = EntityViewSet.for_resource(name, _provider(attribute), _storage, serializer, list_params)
+    viewset = EntityViewSet.for_resource(name, _provider(attribute), get_image_storage, serializer, list_params)
     router.register(prefix, viewset, basename=prefix)
 
 urlpatterns = [
     path("meta/", meta, name="meta"),
     path("health/", health, name="health"),
+    path("auth/csrf/", accounts.CsrfView.as_view(), name="auth-csrf"),
+    path("auth/login/", accounts.LoginView.as_view(), name="auth-login"),
+    path("auth/logout/", accounts.LogoutView.as_view(), name="auth-logout"),
+    path("account/", accounts.AccountView.as_view(), name="account"),
+    path("account/profile/", accounts.ProfileView.as_view(), name="account-profile"),
+    path("account/card-defaults/", accounts.CardDefaultsView.as_view(), name="account-card-defaults"),
+    path("account/password/", accounts.PasswordView.as_view(), name="account-password"),
     path("", include(router.urls)),
 ]
